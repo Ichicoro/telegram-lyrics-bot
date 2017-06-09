@@ -1,4 +1,5 @@
 from telegram.ext import Updater, MessageHandler, CommandHandler, Filters
+import telegram
 import logging
 import lyricsgetter 
 import os
@@ -17,10 +18,23 @@ def tryToFindLyrics():
 
 
 def msgHandler(bot, update):
+    bot.send_chat_action(chat_id=update.message.chat_id, action=telegram.ChatAction.TYPING)
     print(update.message.text)
     print("It's a song!")
-    bot.send_message(chat_id=update.message.chat_id, 
-        text=lyricsgetter.getSongByName(update.message.text.strip()))  
+    try:
+        lyrics = lyricsgetter.getSongByName(update.message.text.strip())
+        songdata = lyricsgetter.getSongData(update.message.text.strip())
+        if "default" not in songdata['result']['header_image_url']:
+            bot.send_photo(chat_id=update.message.chat_id, photo=songdata['result']['header_image_url'], caption=songdata['result']['full_title'])
+        else:
+            bot.send_message(chat_id=update.message.chat_id, text=songdata['result']['full_title'])
+        bot.send_message(chat_id=update.message.chat_id, 
+            text=lyrics.replace("[", "<b>[").replace("]", "]</b>"), 
+            parse_mode=telegram.ParseMode.HTML)
+    except IndexError:
+        bot.send_message(chat_id=update.message.chat_id, 
+        text="Lyrics not found for your song :(")
+        pass
 
 
 if __name__=="__main__":
